@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
+<title>Штрих коды</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text x=%2250%22 y=%2280%22 font-size=%2280%22 text-anchor=%22middle%22>💳</text></svg>">
+<style>
+:root {
+  --background-color: #fff;
+  --text-color: #000;
+  --modal-background: #fff;
+  --button-background: #007bff;
+  --button-color: #fff;
+  --border-color: #ccc;
+  --card-background: #f5f5f5;
+  --settings-bg: #fff;
+  --shadow-color: rgba(0,0,0,0.1);
+  --touch-target-size: 48px;
+  --card-title-color: #000000;
+  --card-code-color: #000000;
+  --card-badge-bg: #007bff;
+  --card-badge-text: #ffffff;
+  --modal-btn-secondary-bg: transparent;
+  --modal-btn-secondary-text: #000000;
+  --modal-btn-secondary-border: #ccc;
+  --drag-handle-color: #999;
+  --drag-placeholder-border: #007bff;
+  
+  --pyaterochka: #00aa00;
+  --magnit: #ff0000;
+  --lenta: #0000ff;
+  --fixprice: #ff9900;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background-color: #121212;
+    --text-color: #ffffff;
+    --modal-background: #222;
+    --button-background: #0056b3;
+    --button-color: #fff;
+    --border-color: #444;
+    --card-background: #1e1e1e;
+    --settings-bg: #2d2d2d;
+    --shadow-color: rgba(0,0,0,0.3);
+    --card-title-color: #ffffff;
+    --card-code-color: #ffffff;
+    --card-badge-bg: #0056b3;
+    --modal-btn-secondary-bg: #2d2d2d;
+    --modal-btn-secondary-text: #ffffff;
+    --modal-btn-secondary-border: #666;
+    --drag-handle-color: #aaa;
+  }
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+input, [contenteditable="true"] {
+  user-select: text;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  text-align: center;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  min-height: 100vh;
+  padding: 12px;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Верхняя строка с кнопками на одном уровне */
+.action-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  margin-bottom: 16px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.settings-btn {
+  background: var(--card-background);
+  border: 2px solid var(--border-color);
+  cursor: pointer;
+  padding: 10px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--touch-target-size);
+  min-height: var(--touch-target-size);
+  box-shadow: 0 2px 6px var(--shadow-color);
+  transition: transform 0.1s;
+}
+
+.settings-btn:active {
+  transform: scale(0.95);
+}
+
+.settings-btn svg {
+  width: 24px;
+  height: 24px;
+  fill: var(--text-color);
+}
+
+/* Всплывающее окно (тост) */
+#toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-20px);
+  background-color: #333;
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 50000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+#toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.upload-section {
+  margin: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 22px;
+  background-color: var(--button-background);
+  color: var(--button-color);
+  border-radius: 14px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  border: none;
+  min-height: var(--touch-target-size);
+  box-shadow: 0 4px 8px rgba(0,123,255,0.25);
+  transition: transform 0.1s, opacity 0.2s;
+}
+
+.button:active {
+  transform: scale(0.97);
+}
+
+#fileInput { display: none; }
+
+.manual-input {
+  margin: 16px 0;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.manual-input input {
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 2px solid var(--border-color);
+  background-color: var(--background-color);
+  color: var(--text-color);
+  font-size: 16px;
+  min-height: var(--touch-target-size);
+  flex: 1;
+  min-width: 220px;
+  max-width: 380px;
+  font-family: monospace;
+}
+
+#cardsWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.card {
+  background-color: var(--card-background);
+  border-radius: 20px;
+  padding: 18px;
+  box-shadow: 0 4px 12px var(--shadow-color);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  border: 2px solid transparent;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card.dragging {
+  opacity: 0.5;
+  transform: scale(0.98);
+  z-index: 1000;
+}
+
+.card.drag-over {
+  border-color: var(--drag-placeholder-border);
+}
+
+.drag-handle {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: grab;
+  touch-action: none;
+  z-index: 15;
+  color: var(--drag-handle-color);
+}
+
+.drag-handle .dot {
+  width: 5px;
+  height: 5px;
+  background-color: currentColor;
+  border-radius: 50%;
+}
+
+.card-left-panel {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 20;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.card:hover .card-left-panel,
+.card:focus-within .card-left-panel {
+  opacity: 1;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .card-left-panel { opacity: 1; }
+  .card { padding-left: 58px; }
+}
+
+.card-action-btn {
+  background-color: var(--settings-bg);
+  border-radius: 50%;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+.card-action-btn svg {
+  width: 20px;
+  height: 20px;
+  fill: var(--text-color);
+  stroke: var(--text-color);
+}
+
+.card-title {
+  font-weight: 700;
+  font-size: 18px;
+  text-align: left;
+  padding: 4px 8px;
+  border-radius: 8px;
+  color: var(--card-title-color);
+  margin-right: 40px;
+}
+
+.card-title:focus {
+  outline: 2px solid var(--button-background);
+  background-color: var(--background-color);
+}
+
+.badges-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.type-badge {
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  background-color: var(--card-badge-bg);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.type-badge.qr { background-color: #9C27B0; }
+
+.shop-badge {
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 16px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+}
+
+.shop-badge.pyaterochka { background-color: var(--pyaterochka); }
+.shop-badge.magnit { background-color: var(--magnit); }
+.shop-badge.lenta { background-color: var(--lenta); }
+.shop-badge.fixprice { background-color: var(--fixprice); }
+.shop-badge.perekrestok { background-color: #cc0000; }
+.shop-badge.ok { background-color: #ff6600; }
+.shop-badge.auchan { background-color: #ff0000; }
+.shop-badge.metro { background-color: #003399; }
+.shop-badge.letual { background-color: #ff3399; }
+.shop-badge.sportmaster { background-color: #ff6600; }
+.shop-badge.detsky_mir { background-color: #00ccff; }
+.shop-badge.mvideo { background-color: #ff0000; }
+.shop-badge.dns { background-color: #0000ff; }
+.shop-badge.other { background-color: #777777; }
+
+.code-image-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #ffffff !important;
+  border-radius: 14px;
+  padding: 12px;
+  min-height: 110px;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08);
+}
+
+.code-image-container svg {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  max-height: 95px;
+}
+
+.code-image-container canvas {
+  max-height: 120px;
+  width: auto !important;
+  height: auto !important;
+}
+
+.card-code {
+  font-family: monospace;
+  font-size: 14px;
+  text-align: center;
+  word-break: break-all;
+  padding: 8px 12px;
+  background-color: rgba(128, 128, 128, 0.1);
+  border-radius: 10px;
+  color: var(--card-code-color);
+}
+
+/* Модальные окна */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0,0,0,0.8);
+  backdrop-filter: blur(5px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 20000;
+  padding: 16px;
+}
+
+.modal-content {
+  background-color: var(--settings-bg);
+  border-radius: 24px;
+  padding: 24px 20px;
+  max-width: 440px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+}
+
+.modal-content h3 { margin-bottom: 20px; font-size: 20px; }
+
+.shop-selector-modal, .theme-presets {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.shop-option, .theme-preset {
+  padding: 12px;
+  border-radius: 12px;
+  background-color: var(--card-background);
+  color: var(--text-color);
+  border: 2px solid var(--border-color);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.shop-option.selected, .theme-preset.selected {
+  border-color: var(--button-background);
+  background-color: var(--button-background);
+  color: #fff;
+}
+
+.color-options {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.color-option {
+  aspect-ratio: 1;
+  border-radius: 12px;
+  cursor: pointer;
+  border: 3px solid transparent;
+}
+
+.color-option.selected { border-color: var(--button-background); }
+
+.custom-color-picker {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.custom-color-picker input[type="color"] {
+  width: 50px;
+  height: 50px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.custom-color-picker button, .modal-actions button {
+  flex: 1;
+  padding: 14px;
+  border-radius: 12px;
+  border: none;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.primary { background-color: var(--button-background); color: #fff; }
+.secondary { background-color: transparent; border: 2px solid var(--border-color) !important; color: var(--text-color); }
+
+/* Полноэкранный режим */
+.fullscreen-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0,0,0,0.96);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 100000;
+  padding: 20px;
+  cursor: pointer;
+}
+
+.fullscreen-content {
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.fullscreen-box {
+  background-color: #ffffff;
+  padding: 24px;
+  border-radius: 24px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.fullscreen-box svg {
+  width: 100%;
+  max-height: 220px;
+}
+
+.fullscreen-box canvas {
+  max-width: 100%;
+  height: auto !important;
+}
+
+.fullscreen-code {
+  color: #fff;
+  font-size: 24px;
+  font-family: monospace;
+  word-break: break-all;
+  padding: 14px 24px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 16px;
+}
+
+.fullscreen-instruction { color: #aaa; font-size: 14px; }
+
+@media (min-width: 768px) {
+  #cardsWrapper {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Всплывающее уведомление (тост) -->
+  <div id="toast"></div>
+
+  <!-- Кнопка сканирования и шестеренка настроек на одном уровне, без лишних надписей -->
+  <div class="action-top-bar">
+    <div class="upload-section">
+      <label for="fileInput" class="button">📷 Сканировать с фото</label>
+      <input type="file" id="fileInput" accept="image/*" />
+    </div>
+    <button id="globalSettingsBtn" class="settings-btn" aria-label="Настройки">
+      <svg viewBox="0 0 24 24"><path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.22,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.22,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.04 4.95,18.95L7.44,17.95C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.95L19.05,18.95C19.27,19.04 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/></svg>
+    </button>
+  </div>
+  
+  <div class="manual-input">
+    <input type="text" id="manualCode" placeholder="Введите номер или текст карты" />
+    <button id="addManualBtn" class="button">➕ Добавить</button>
+  </div>
+  
+  <canvas id="canvasPreview" style="display:none;"></canvas>
+  
+  <div id="scannedCodes">
+    <div id="cardsWrapper"></div>
+  </div>
+</div>
+
+<!-- Глобальные настройки -->
+<div id="globalSettingsModal" class="modal-overlay" style="display: none;">
+  <div class="modal-content">
+    <h3>Тема оформления</h3>
+    <div class="theme-presets">
+      <div class="theme-preset" data-theme="light">Светлая</div>
+      <div class="theme-preset" data-theme="dark">Тёмная</div>
+      <div class="theme-preset" data-theme="blue">Голубая</div>
+      <div class="theme-preset" data-theme="green">Зелёная</div>
+    </div>
+    <div class="modal-actions">
+      <button class="secondary" id="closeGlobalSettings">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<!-- Настройки карточки -->
+<div id="cardSettingsModal" class="modal-overlay" style="display: none;">
+  <div class="modal-content">
+    <h3>Цвет карточки</h3>
+    <div class="color-options" id="cardColorOptions"></div>
+    <div class="custom-color-picker">
+      <input type="color" id="customCardColorPicker" value="#f5f5f5" />
+      <button class="primary" id="applyCustomCardColorToCard">Применить свой</button>
+    </div>
+    <div class="modal-actions">
+      <button class="primary" id="applyCardSettings">Сохранить</button>
+      <button class="secondary" id="closeCardSettings">Отмена</button>
+    </div>
+  </div>
+</div>
+
+<!-- Выбор магазина -->
+<div id="shopSelectModal" class="modal-overlay" style="display: none;">
+  <div class="modal-content">
+    <h3>Выберите магазин</h3>
+    <div class="shop-selector-modal" id="shopOptions"></div>
+    <div class="modal-actions">
+      <button class="primary" id="okShopSelect">ОК</button>
+      <button class="secondary" id="closeShopSelect">Отмена</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/quagga/dist/quagga.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const toastEl = document.getElementById('toast');
+  const fileInput = document.getElementById('fileInput');
+  const manualCode = document.getElementById('manualCode');
+  const addManualBtn = document.getElementById('addManualBtn');
+  const globalSettingsBtn = document.getElementById('globalSettingsBtn');
+  const globalSettingsModal = document.getElementById('globalSettingsModal');
+  const cardSettingsModal = document.getElementById('cardSettingsModal');
+  const shopSelectModal = document.getElementById('shopSelectModal');
+  const shopOptions = document.getElementById('shopOptions');
+  const closeShopSelect = document.getElementById('closeShopSelect');
+  const okShopSelect = document.getElementById('okShopSelect');
+  const cardColorOptions = document.getElementById('cardColorOptions');
+  const closeGlobalSettings = document.getElementById('closeGlobalSettings');
+  const applyCardSettings = document.getElementById('applyCardSettings');
+  const closeCardSettings = document.getElementById('closeCardSettings');
+  const customCardColorPicker = document.getElementById('customCardColorPicker');
+  const applyCustomCardColorToCard = document.getElementById('applyCustomCardColorToCard');
+  const themePresets = document.querySelectorAll('.theme-preset');
+  const canvas = document.getElementById('canvasPreview');
+  const ctx = canvas.getContext('2d');
+  const cardsWrapper = document.getElementById('cardsWrapper');
+
+  let scannedCodes = JSON.parse(localStorage.getItem('scannedCodes')) || [];
+  let currentCardIndex = null;
+  let currentShopCallback = null;
+  let toastTimer = null;
+
+  let draggedItem = null;
+  let draggedIndex = -1;
+  let dragOverIndex = -1;
+  let isDragging = false;
+
+  const shops = {
+    pyaterochka: { name: 'Пятёрочка' },
+    magnit: { name: 'Магнит' },
+    lenta: { name: 'Лента' },
+    fixprice: { name: 'Fix Price' },
+    perekrestok: { name: 'Перекрёсток' },
+    ok: { name: 'О’КЕЙ' },
+    auchan: { name: 'Ашан' },
+    metro: { name: 'METRO' },
+    letual: { name: 'Л’Этуаль' },
+    sportmaster: { name: 'Спортмастер' },
+    detsky_mir: { name: 'Детский мир' },
+    mvideo: { name: 'М.Видео' },
+    dns: { name: 'DNS' },
+    other: { name: 'Другая карта' }
+  };
+
+  function showToast(message) {
+    toastEl.textContent = message;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      toastEl.classList.remove('show');
+    }, 2500);
+  }
+
+  function normalizeCode(code, isQR = false) {
+    if (!code) return '';
+    const trimmed = code.toString().trim();
+    if (isQR) return trimmed;
+    return trimmed.replace(/\s+/g, '');
+  }
+
+  function isValidEAN(code) {
+    if (!/^\d+$/.test(code)) return false;
+    if (code.length !== 13 && code.length !== 8) return false;
+    const digits = code.split('').map(Number);
+    const checkDigit = digits.pop();
+    let sum = 0;
+    digits.reverse().forEach((d, idx) => {
+      sum += d * (idx % 2 === 0 ? 3 : 1);
+    });
+    const calculated = (10 - (sum % 10)) % 10;
+    return checkDigit === calculated;
+  }
+
+  function detectBarcodeFormat(code) {
+    const cleaned = code.toString().trim();
+    if (/^\d+$/.test(cleaned)) {
+      if (cleaned.length === 13 && isValidEAN(cleaned)) return 'EAN13';
+      if (cleaned.length === 8 && isValidEAN(cleaned)) return 'EAN8';
+      if (cleaned.length === 12) return 'UPC';
+    }
+    return 'CODE128';
+  }
+
+  function detectCodeType(code) {
+    if (
+      code.length > 30 ||
+      /[а-яА-ЯёЁ]/.test(code) ||
+      /[:\/?&=#{}\[\]]/.test(code)
+    ) {
+      return 'qr';
+    }
+    return 'barcode';
+  }
+
+  function detectShop(code) {
+    const upper = code.toUpperCase();
+    if (upper.startsWith('E7') || upper.startsWith('277') || upper.startsWith('290')) return 'magnit';
+    if (upper.startsWith('291') || upper.startsWith('292') || upper.startsWith('264') || upper.startsWith('265')) return 'pyaterochka';
+    if (upper.startsWith('403') || upper.startsWith('468')) return 'lenta';
+    if (upper.startsWith('204') || upper.startsWith('460') || upper.startsWith('481')) return 'fixprice';
+    if (upper.startsWith('210') || upper.startsWith('211')) return 'perekrestok';
+    if (upper.startsWith('244') || upper.startsWith('270')) return 'ok';
+    if (upper.startsWith('202')) return 'auchan';
+    if (upper.startsWith('278')) return 'metro';
+    if (upper.startsWith('289')) return 'letual';
+    if (upper.startsWith('279')) return 'sportmaster';
+    if (upper.startsWith('280')) return 'detsky_mir';
+    if (upper.startsWith('281')) return 'mvideo';
+    if (upper.startsWith('282') || upper.startsWith('000')) return 'dns';
+    return 'other';
+  }
+
+  function getContrastColor(bg) {
+    if (!bg || !bg.startsWith('#')) return '';
+    const hex = bg.substring(1);
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    return (r * 299 + g * 587 + b * 114) / 1000 > 128 ? '#000000' : '#ffffff';
+  }
+
+  function renderBarcodeSVG(svgElement, code, format, isFullscreen = false) {
+    const targetFormat = format || detectBarcodeFormat(code);
+    const options = {
+      format: targetFormat,
+      lineColor: '#000000',
+      background: '#ffffff',
+      displayValue: true,
+      fontSize: isFullscreen ? 20 : 14,
+      width: isFullscreen ? 3 : 2,
+      height: isFullscreen ? 140 : 65,
+      margin: 10
+    };
+
+    try {
+      JsBarcode(svgElement, code, options);
+    } catch (e1) {
+      try {
+        JsBarcode(svgElement, code, { ...options, format: 'CODE128' });
+      } catch (e2) {
+        svgElement.innerHTML = '<text x="10" y="30" fill="red" font-size="12">Ошибка отрисовки кода</text>';
+      }
+    }
+  }
+
+  function renderQRCanvas(container, text, size = 160) {
+    container.innerHTML = '';
+    const canvasEl = document.createElement('canvas');
+    QRCode.toCanvas(canvasEl, text, {
+      width: size,
+      margin: 2,
+      errorCorrectionLevel: 'M',
+      color: { dark: '#000000', light: '#ffffff' }
+    }, (err) => {
+      if (err) {
+        container.innerHTML = '<span style="color:red; font-size:12px;">Ошибка QR-кода</span>';
+      }
+    });
+    container.appendChild(canvasEl);
+  }
+
+  function showFullScreen(code, type, format) {
+    const overlay = document.createElement('div');
+    overlay.className = 'fullscreen-overlay';
+
+    const content = document.createElement('div');
+    content.className = 'fullscreen-content';
+
+    const box = document.createElement('div');
+    box.className = 'fullscreen-box';
+
+    if (type === 'qr') {
+      renderQRCanvas(box, code, 320);
+    } else {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      renderBarcodeSVG(svg, code, format, true);
+      box.appendChild(svg);
+    }
+
+    const codeDisplay = document.createElement('div');
+    codeDisplay.className = 'fullscreen-code';
+    codeDisplay.textContent = code;
+
+    const instruction = document.createElement('div');
+    instruction.className = 'fullscreen-instruction';
+    instruction.textContent = 'Нажмите в любом месте, чтобы закрыть';
+
+    content.appendChild(box);
+    content.appendChild(codeDisplay);
+    content.appendChild(instruction);
+    overlay.appendChild(content);
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener('click', () => overlay.remove());
+  }
+
+  function renderScannedCodes() {
+    cardsWrapper.innerHTML = '';
+
+    scannedCodes.forEach((codeObj, index) => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.dataset.index = index;
+      if (codeObj.cardColor) {
+        card.style.backgroundColor = codeObj.cardColor;
+      }
+
+      const textColor = codeObj.cardColor ? getContrastColor(codeObj.cardColor) : '';
+      const shop = shops[codeObj.shop] || shops.other;
+
+      const dragHandle = document.createElement('div');
+      dragHandle.className = 'drag-handle';
+      dragHandle.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+
+      dragHandle.addEventListener('mousedown', (e) => startDrag(e, index, card));
+      dragHandle.addEventListener('touchstart', (e) => startDrag(e, index, card), { passive: false });
+
+      const leftPanel = document.createElement('div');
+      leftPanel.className = 'card-left-panel';
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'card-action-btn';
+      deleteBtn.innerHTML = '<svg viewBox="0 0 24 24"><line x1="5" y1="5" x2="19" y2="19" stroke-width="2"/><line x1="19" y1="5" x2="5" y2="19" stroke-width="2"/></svg>';
+      deleteBtn.onclick = (e) => {
+        e.stopPropagation();
+        scannedCodes.splice(index, 1);
+        saveAndRender();
+        showToast('Карта удалена');
+      };
+
+      const settingsBtn = document.createElement('button');
+      settingsBtn.className = 'card-action-btn';
+      settingsBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.22,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.22,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.04 4.95,18.95L7.44,17.95C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.95L19.05,18.95C19.27,19.04 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/></svg>';
+      settingsBtn.onclick = (e) => {
+        e.stopPropagation();
+        currentCardIndex = index;
+        openColorModal(codeObj.cardColor);
+      };
+
+      leftPanel.append(deleteBtn, settingsBtn);
+
+      const title = document.createElement('div');
+      title.className = 'card-title';
+      title.textContent = codeObj.name || shop.name;
+      title.contentEditable = true;
+      if (textColor) title.style.color = textColor;
+      title.onblur = () => {
+        scannedCodes[index].name = title.textContent.trim();
+        localStorage.setItem('scannedCodes', JSON.stringify(scannedCodes));
+      };
+
+      const badgesRow = document.createElement('div');
+      badgesRow.className = 'badges-row';
+
+      const shopBadge = document.createElement('span');
+      shopBadge.className = `shop-badge ${codeObj.shop}`;
+      shopBadge.textContent = shop.name;
+      shopBadge.onclick = (e) => {
+        e.stopPropagation();
+        showShopSelector(codeObj.shop, (newShop) => {
+          scannedCodes[index].shop = newShop;
+          scannedCodes[index].name = shops[newShop].name;
+          saveAndRender();
+        });
+      };
+
+      const typeBadge = document.createElement('span');
+      typeBadge.className = `type-badge ${codeObj.type === 'qr' ? 'qr' : ''}`;
+      typeBadge.textContent = codeObj.type === 'qr' ? 'QR-код ⇄' : `${codeObj.format || 'Штрих-код'} ⇄`;
+      typeBadge.title = 'Нажмите, чтобы переключить тип кода';
+      typeBadge.onclick = (e) => {
+        e.stopPropagation();
+        scannedCodes[index].type = codeObj.type === 'qr' ? 'barcode' : 'qr';
+        saveAndRender();
+      };
+
+      badgesRow.append(shopBadge, typeBadge);
+
+      const imageContainer = document.createElement('div');
+      imageContainer.className = 'code-image-container';
+      imageContainer.onclick = () => showFullScreen(codeObj.code, codeObj.type, codeObj.format);
+
+      if (codeObj.type === 'qr') {
+        renderQRCanvas(imageContainer, codeObj.code, 140);
+      } else {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        renderBarcodeSVG(svg, codeObj.code, codeObj.format, false);
+        imageContainer.appendChild(svg);
+      }
+
+      const codeText = document.createElement('div');
+      codeText.className = 'card-code';
+      codeText.textContent = codeObj.code;
+      if (textColor) codeText.style.color = textColor;
+
+      card.append(dragHandle, leftPanel, title, badgesRow, imageContainer, codeText);
+      cardsWrapper.appendChild(card);
+    });
+  }
+
+  function saveAndRender() {
+    localStorage.setItem('scannedCodes', JSON.stringify(scannedCodes));
+    renderScannedCodes();
+  }
+
+  function addCode(rawCode, detectedFormat = null) {
+    const code = normalizeCode(rawCode);
+    if (!code) {
+      showToast('Введите корректный код!');
+      return;
+    }
+
+    const type = detectCodeType(code);
+    const shopId = detectShop(code);
+    const format = detectedFormat || detectBarcodeFormat(code);
+
+    scannedCodes.unshift({
+      id: Date.now() + Math.random().toString(36).slice(2),
+      code,
+      type,
+      shop: shopId,
+      format,
+      name: shops[shopId].name
+    });
+
+    saveAndRender();
+    showToast(`Добавлена карта: ${shops[shopId].name}`);
+  }
+
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        showToast('Распознавание...');
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const qrData = jsQR(imageData.data, imageData.width, imageData.height);
+
+        if (qrData && qrData.data) {
+          addCode(qrData.data);
+          return;
+        }
+
+        Quagga.decodeSingle({
+          src: canvas.toDataURL(),
+          numOfWorkers: 0,
+          inputStream: { size: 1000 },
+          decoder: {
+            readers: ['ean_reader', 'ean_8_reader', 'code_128_reader', 'upc_reader', 'code_39_reader']
+          },
+          locate: true
+        }, (res) => {
+          if (res && res.codeResult) {
+            const fmtMap = {
+              'ean_13': 'EAN13',
+              'ean_8': 'EAN8',
+              'upc_a': 'UPC',
+              'code_128': 'CODE128',
+              'code_39': 'CODE39'
+            };
+            const realFormat = fmtMap[res.codeResult.format] || detectBarcodeFormat(res.codeResult.code);
+            addCode(res.codeResult.code, realFormat);
+          } else {
+            showToast('Код не распознан. Введите вручную.');
+          }
+        });
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+    fileInput.value = '';
+  });
+
+  addManualBtn.addEventListener('click', () => {
+    const val = manualCode.value.trim();
+    if (!val) {
+      showToast('Введите номер карты');
+      return;
+    }
+    addCode(val);
+    manualCode.value = '';
+  });
+
+  manualCode.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') addManualBtn.click();
+  });
+
+  function showShopSelector(currentShop, callback) {
+    currentShopCallback = callback;
+    shopOptions.innerHTML = '';
+    Object.entries(shops).forEach(([id, shop]) => {
+      const opt = document.createElement('div');
+      opt.className = `shop-option ${id === currentShop ? 'selected' : ''}`;
+      opt.textContent = shop.name;
+      opt.dataset.shop = id;
+      opt.onclick = () => {
+        document.querySelectorAll('.shop-option').forEach(el => el.classList.remove('selected'));
+        opt.classList.add('selected');
+      };
+      shopOptions.appendChild(opt);
+    });
+    shopSelectModal.style.display = 'flex';
+  }
+
+  okShopSelect.onclick = () => {
+    const selected = document.querySelector('.shop-option.selected');
+    if (selected && currentShopCallback) currentShopCallback(selected.dataset.shop);
+    shopSelectModal.style.display = 'none';
+  };
+  closeShopSelect.onclick = () => shopSelectModal.style.display = 'none';
+
+  const palette = ['#f5f5f5', '#ffffff', '#bbdefb', '#c8e6c9', '#fff9c4', '#ffe0b2', '#f8bbd0', '#d1c4e9', '#1e1e1e', '#1a237e'];
+  function openColorModal(currentColor) {
+    cardColorOptions.innerHTML = '';
+    palette.forEach(hex => {
+      const opt = document.createElement('div');
+      opt.className = `color-option ${hex === currentColor ? 'selected' : ''}`;
+      opt.style.backgroundColor = hex;
+      opt.dataset.color = hex;
+      opt.onclick = () => {
+        document.querySelectorAll('.color-option').forEach(el => el.classList.remove('selected'));
+        opt.classList.add('selected');
+      };
+      cardColorOptions.appendChild(opt);
+    });
+    cardSettingsModal.style.display = 'flex';
+  }
+
+  applyCardSettings.onclick = () => {
+    const sel = document.querySelector('.color-option.selected')?.dataset.color;
+    if (sel && currentCardIndex !== null) {
+      scannedCodes[currentCardIndex].cardColor = sel;
+      saveAndRender();
+    }
+    cardSettingsModal.style.display = 'none';
+  };
+
+  applyCustomCardColorToCard.onclick = () => {
+    if (currentCardIndex !== null) {
+      scannedCodes[currentCardIndex].cardColor = customCardColorPicker.value;
+      saveAndRender();
+    }
+    cardSettingsModal.style.display = 'none';
+  };
+
+  closeCardSettings.onclick = () => cardSettingsModal.style.display = 'none';
+
+  function applyTheme(theme) {
+    const root = document.documentElement;
+    const themes = {
+      light: { '--background-color': '#ffffff', '--text-color': '#000000', '--card-background': '#f5f5f5', '--settings-bg': '#ffffff', '--border-color': '#cccccc' },
+      dark: { '--background-color': '#121212', '--text-color': '#ffffff', '--card-background': '#1e1e1e', '--settings-bg': '#2d2d2d', '--border-color': '#444444' },
+      blue: { '--background-color': '#e3f2fd', '--text-color': '#000000', '--card-background': '#bbdefb', '--settings-bg': '#e3f2fd', '--border-color': '#90caf9' },
+      green: { '--background-color': '#e8f5e9', '--text-color': '#000000', '--card-background': '#c8e6c9', '--settings-bg': '#e8f5e9', '--border-color': '#a5d6a7' }
+    };
+    const t = themes[theme];
+    if (t) {
+      Object.entries(t).forEach(([k, v]) => root.style.setProperty(k, v));
+      localStorage.setItem('siteTheme', theme);
+    }
+  }
+
+  const savedTheme = localStorage.getItem('siteTheme');
+  if (savedTheme) applyTheme(savedTheme);
+
+  globalSettingsBtn.onclick = () => globalSettingsModal.style.display = 'flex';
+  closeGlobalSettings.onclick = () => globalSettingsModal.style.display = 'none';
+
+  themePresets.forEach(p => {
+    p.onclick = () => {
+      themePresets.forEach(el => el.classList.remove('selected'));
+      p.classList.add('selected');
+      applyTheme(p.dataset.theme);
+    };
+  });
+
+  function startDrag(e, index, card) {
+    e.preventDefault();
+    isDragging = true;
+    draggedIndex = index;
+    draggedItem = card;
+    card.classList.add('dragging');
+  }
+
+  document.addEventListener('mousemove', moveDrag);
+  document.addEventListener('touchmove', moveDrag, { passive: false });
+  document.addEventListener('mouseup', endDrag);
+  document.addEventListener('touchend', endDrag);
+
+  function moveDrag(e) {
+    if (!isDragging) return;
+    e.preventDefault();
+    const point = e.touches ? e.touches[0] : e;
+    const el = document.elementFromPoint(point.clientX, point.clientY);
+    const targetCard = el?.closest('.card');
+    document.querySelectorAll('.card').forEach(c => c.classList.remove('drag-over'));
+    if (targetCard && targetCard !== draggedItem) {
+      targetCard.classList.add('drag-over');
+      dragOverIndex = parseInt(targetCard.dataset.index, 10);
+    }
+  }
+
+  function endDrag() {
+    if (!isDragging) return;
+    if (draggedIndex !== -1 && dragOverIndex !== -1 && draggedIndex !== dragOverIndex) {
+      const [moved] = scannedCodes.splice(draggedIndex, 1);
+      scannedCodes.splice(dragOverIndex, 0, moved);
+      saveAndRender();
+    } else {
+      document.querySelectorAll('.card').forEach(c => c.classList.remove('dragging', 'drag-over'));
+    }
+    isDragging = false;
+    draggedItem = null;
+    draggedIndex = -1;
+    dragOverIndex = -1;
+  }
+
+  renderScannedCodes();
+});
+</script>
+</body>
+</html>
