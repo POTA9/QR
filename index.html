@@ -710,9 +710,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function detectBarcodeFormat(code) {
     const cleaned = code.toString().trim();
-    if (cleaned.startsWith('K') || cleaned.length > 14) {
-    return 'CODE128';
-  }
     if (/^\d+$/.test(cleaned)) {
       if (cleaned.length === 13 && isValidEAN(cleaned)) return 'EAN13';
       if (cleaned.length === 8 && isValidEAN(cleaned)) return 'EAN8';
@@ -736,7 +733,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const upper = code.toUpperCase();
     if (upper.startsWith('E7') || upper.startsWith('277') || upper.startsWith('290')) return 'magnit';
     if (upper.startsWith('291') || upper.startsWith('292') || upper.startsWith('264') || upper.startsWith('265')) return 'pyaterochka';
-    if (upper.startsWith('403') || upper.startsWith('468') || upper.startsWith('K') || upper.startsWith('4607') || upper.startsWith('4605') || upper.includes('4700')) return 'lenta';
+    if (upper.startsWith('403') || upper.startsWith('468') || upper.startsWith('K') || upper.startsWith('4607') || upper.startsWith('4605') || upper.includes('470')) return 'lenta';
     if (upper.startsWith('204') || upper.startsWith('460') || upper.startsWith('481')) return 'fixprice';
     if (upper.startsWith('210') || upper.startsWith('211')) return 'perekrestok';
     if (upper.startsWith('244') || upper.startsWith('270')) return 'ok';
